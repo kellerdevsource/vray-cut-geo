@@ -1,0 +1,86 @@
+shader test
+(
+    color nrm = color(0,0,0),
+    color origin = color(0,0,0),
+    color pos = color(0,0,0),
+    color dir = color(0,0,0),
+    color point0 = color(0,0,0),
+    color point1 = color(0,0,0),
+    color point2 = color(0,0,0),
+    color point3 = color(0,0,0),
+    color point4 = color(0,0,0),
+    color point5 = color(0,0,0),
+    int numpoints = 0,
+    output color result = color(0,0,0)
+)
+
+{
+    int crossCheck(point p1, point p2, point pp) 
+    {
+        int cc = 0;
+        if((pp.z < p1.z) != (pp.z < p2.z))
+        {
+            if(pp.x < ((p2.x - p1.x) * (pp.z - p1.z)) / (p2.z - p1.z) + p1.x)
+            {
+                cc = 1;
+            }
+      
+        }
+        return cc;
+    }
+    matrix align(vector v2, vector v1)
+    {
+        vector axis = cross(v1, v2);
+        float cosA = dot(v1, v2);
+        float k = 1.0/(1.0+cosA);
+        matrix mtx  = matrix((axis.x * axis.x * k) + cosA,
+                             (axis.y * axis.x * k) - axis.z,
+                             (axis.z * axis.x * k) + axis.y,
+                             0.0,
+                             (axis.x * axis.y * k) + axis.z,
+                             (axis.y * axis.y * k) + cosA,
+                             (axis.z * axis.y * k) - axis.x,
+                             0.0,
+                             (axis.x * axis.z * k) - axis.y, 
+                             (axis.y * axis.z * k) + axis.x,
+                             (axis.z * axis.z * k) + cosA,
+                             0.0,
+                             0.0,0.0,0.0, 1.0);
+        return mtx;
+    }
+    vector direction = dir;
+    point points[6] = {point0, point1, point2, point3, point4, point5};
+    point position = pos;
+    int check = 0;
+    int nextpoint = 0;
+    vector up = vector(0,1,0);
+    vector left = vector(1,0,0);
+
+    matrix alignMatrix = align(nrm, up);
+    direction = transform(alignMatrix, direction);
+    alignMatrix *= align(direction, left);
+    
+    position = pos - origin;
+    position = transform(alignMatrix, position);
+    
+    
+    for(int i = 0; i < numpoints; i++)
+    {
+        if(i<numpoints-1)
+        {
+            nextpoint = i+1;
+        }
+        else 
+        {
+            nextpoint = 0;
+        }
+        point p1 = transform(alignMatrix, points[i]-origin);
+        point p2 = transform(alignMatrix, points[nextpoint]-origin);
+        
+        check += crossCheck(p1, p2, position);
+    }
+    
+    result = (check%2 != 0);
+    point p1 = transform(alignMatrix, points[3] - origin);
+    result = position;
+}
